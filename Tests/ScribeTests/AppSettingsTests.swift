@@ -1,11 +1,11 @@
 import XCTest
 
-@testable import ZerGo0Scribe
+@testable import Scribe
 
 @MainActor
 final class AppSettingsTests: XCTestCase {
   func testSettingsPersistAcrossInstances() throws {
-    let suite = "ZerGo0ScribeTests-\(UUID().uuidString)"
+    let suite = "ScribeTests-\(UUID().uuidString)"
     let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
     defer { defaults.removePersistentDomain(forName: suite) }
 

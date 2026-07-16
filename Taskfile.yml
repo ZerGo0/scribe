@@ -2,7 +2,7 @@ version: "3"
 
 tasks:
   default:
-    desc: Build ZerGo0Scribe
+    desc: Build Scribe
     cmds:
       - task: build
 
@@ -22,18 +22,18 @@ tasks:
       - ./Scripts/build-app.sh
 
   install:
-    desc: Build and install ZerGo0Scribe for everyday use
+    desc: Build and install Scribe for everyday use
     silent: true
     cmds:
       - task: bundle
-      - pkill -x ZerGo0Scribe || true
+      - pkill -x Scribe || true
       - sleep 0.2
       - mkdir -p "$HOME/Applications"
-      - rm -rf "$HOME/Applications/ZerGo0Scribe.app"
-      - cp -R "dist/ZerGo0Scribe.app" "$HOME/Applications/ZerGo0Scribe.app"
-      - touch "$HOME/Applications/ZerGo0Scribe.app"
-      - open "$HOME/Applications/ZerGo0Scribe.app"
-      - echo "Installed $HOME/Applications/ZerGo0Scribe.app"
+      - rm -rf "$HOME/Applications/Scribe.app"
+      - cp -R "dist/Scribe.app" "$HOME/Applications/Scribe.app"
+      - touch "$HOME/Applications/Scribe.app"
+      - open "$HOME/Applications/Scribe.app"
+      - echo "Installed $HOME/Applications/Scribe.app"
 
   clean:
     desc: Remove SwiftPM and packaged build output

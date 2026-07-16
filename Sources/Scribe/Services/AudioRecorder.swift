@@ -18,7 +18,7 @@ final class AudioRecorder {
     guard allowed else { throw DictationError.microphoneDenied }
 
     let directory = FileManager.default.temporaryDirectory
-      .appendingPathComponent("ZerGo0ScribeRecordings", isDirectory: true)
+      .appendingPathComponent("ScribeRecordings", isDirectory: true)
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     let url = directory.appendingPathComponent("\(UUID().uuidString).m4a")
     let settings: [String: Any] = [

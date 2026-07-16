@@ -1,7 +1,7 @@
 import Foundation
 import XCTest
 
-@testable import ZerGo0Scribe
+@testable import Scribe
 
 final class TranscriptionClientTests: XCTestCase, @unchecked Sendable {
   override func tearDown() {

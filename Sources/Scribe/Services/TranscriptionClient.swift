@@ -25,7 +25,7 @@ struct OpenAITranscriptionClient: Transcribing, @unchecked Sendable {
     }
     guard !apiKey.isEmpty else { throw DictationError.missingAPIKey }
 
-    let boundary = "ZerGo0Scribe-\(UUID().uuidString)"
+    let boundary = "Scribe-\(UUID().uuidString)"
     let endpoint = baseURL.appendingPathComponent("audio/transcriptions")
     var request = URLRequest(url: endpoint)
     request.httpMethod = "POST"

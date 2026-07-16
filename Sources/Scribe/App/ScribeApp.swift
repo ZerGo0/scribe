@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct ZerGo0ScribeApp: App {
+struct ScribeApp: App {
   @StateObject private var controller = AppController()
 
   var body: some Scene {
@@ -9,7 +9,7 @@ struct ZerGo0ScribeApp: App {
       MenuBarContent(controller: controller, history: controller.history)
     } label: {
       Label(
-        "ZerGo0Scribe",
+        "Scribe",
         systemImage: controller.isRecording ? "mic.fill" : "waveform"
       )
     }

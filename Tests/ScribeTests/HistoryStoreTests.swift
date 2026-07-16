@@ -1,12 +1,12 @@
 import XCTest
 
-@testable import ZerGo0Scribe
+@testable import Scribe
 
 @MainActor
 final class HistoryStoreTests: XCTestCase {
   func testHistoryPrunesItemsOlderThanSevenDaysAndPersistsNewestFirst() throws {
     let directory = FileManager.default.temporaryDirectory
-      .appendingPathComponent("ZerGo0ScribeHistoryTests-\(UUID().uuidString)")
+      .appendingPathComponent("ScribeHistoryTests-\(UUID().uuidString)")
     let file = directory.appendingPathComponent("history.json")
     defer { try? FileManager.default.removeItem(at: directory) }
     let now = Date(timeIntervalSince1970: 1_800_000_000)
@@ -25,7 +25,7 @@ final class HistoryStoreTests: XCTestCase {
 
   func testClearRemovesAllPersistedHistory() {
     let file = FileManager.default.temporaryDirectory
-      .appendingPathComponent("ZerGo0ScribeHistoryTests-\(UUID().uuidString)/history.json")
+      .appendingPathComponent("ScribeHistoryTests-\(UUID().uuidString)/history.json")
     let store = HistoryStore(fileURL: file)
     store.add(Transcript(text: "one", duration: 1))
     store.clear()
@@ -37,7 +37,7 @@ final class HistoryStoreTests: XCTestCase {
 
   func testSearchIsCaseInsensitiveAndDeleteByIDPersists() {
     let file = FileManager.default.temporaryDirectory
-      .appendingPathComponent("ZerGo0ScribeHistoryTests-\(UUID().uuidString)/history.json")
+      .appendingPathComponent("ScribeHistoryTests-\(UUID().uuidString)/history.json")
     let store = HistoryStore(fileURL: file)
     let matching = Transcript(text: "Meeting Notes", duration: 1)
     let other = Transcript(text: "Shopping list", duration: 1)

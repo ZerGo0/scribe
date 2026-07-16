@@ -23,7 +23,7 @@ final class ClipboardInserter {
     item.setString(text, forType: .string)
     item.setData(Data(), forType: .init("org.nspasteboard.TransientType"))
     item.setData(Data(), forType: .init("org.nspasteboard.ConcealedType"))
-    item.setString("com.zergo0.zergo0scribe", forType: .init("org.nspasteboard.source"))
+    item.setString("com.zergo0.scribe", forType: .init("org.nspasteboard.source"))
     pasteboard.clearContents()
     pasteboard.writeObjects([item])
     let transcriptChangeCount = pasteboard.changeCount
