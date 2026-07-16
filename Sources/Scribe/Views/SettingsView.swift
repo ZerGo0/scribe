@@ -361,5 +361,5 @@ struct SettingsView: View {
       : Self.manualModelSelection
   }
 
-  private static let manualModelSelection = "__zergo0scribe_manual_model__"
+  private static let manualModelSelection = "__scribe_manual_model__"
 }

@@ -1,7 +1,7 @@
 import Carbon
 import XCTest
 
-@testable import ZerGo0Scribe
+@testable import Scribe
 
 final class AppModelsTests: XCTestCase {
   func testProviderNormalizesTrailingSlashWithoutDroppingPath() {

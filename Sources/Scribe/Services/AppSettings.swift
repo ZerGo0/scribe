@@ -49,7 +49,7 @@ final class AppSettings: ObservableObject {
 }
 
 struct KeychainStore: Sendable {
-  private let service = "com.zergo0.zergo0scribe"
+  private let service = "com.zergo0.scribe"
   private let account = "provider-api-key"
 
   func readAPIKey() -> String {

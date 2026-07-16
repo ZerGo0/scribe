@@ -3,14 +3,14 @@
 import PackageDescription
 
 let package = Package(
-  name: "zergo0scribe",
+  name: "scribe",
   platforms: [.macOS(.v14)],
   products: [
-    .executable(name: "ZerGo0Scribe", targets: ["ZerGo0Scribe"])
+    .executable(name: "Scribe", targets: ["Scribe"])
   ],
   targets: [
     .executableTarget(
-      name: "ZerGo0Scribe",
+      name: "Scribe",
       linkerSettings: [
         .linkedFramework("AppKit"),
         .linkedFramework("AVFoundation"),
@@ -19,6 +19,6 @@ let package = Package(
         .linkedFramework("ServiceManagement"),
       ]
     ),
-    .testTarget(name: "ZerGo0ScribeTests", dependencies: ["ZerGo0Scribe"]),
+    .testTarget(name: "ScribeTests", dependencies: ["Scribe"]),
   ]
 )

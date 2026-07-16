@@ -31,7 +31,7 @@ struct MenuBarContent: View {
     }
 
     Divider()
-    Button("Quit ZerGo0Scribe") { NSApplication.shared.terminate(nil) }
+    Button("Quit Scribe") { NSApplication.shared.terminate(nil) }
       .keyboardShortcut("q")
   }
 }

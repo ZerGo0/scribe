@@ -2,7 +2,7 @@
 set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-APP="$ROOT/dist/ZerGo0Scribe.app"
+APP="$ROOT/dist/Scribe.app"
 SIGNING_IDENTITY=${CODE_SIGN_IDENTITY:-}
 
 if [ -z "$SIGNING_IDENTITY" ]; then
@@ -19,7 +19,7 @@ cd "$ROOT"
 swift build -c release
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cp "$ROOT/.build/release/ZerGo0Scribe" "$APP/Contents/MacOS/ZerGo0Scribe"
+cp "$ROOT/.build/release/Scribe" "$APP/Contents/MacOS/Scribe"
 cp "$ROOT/Resources/Info.plist" "$APP/Contents/Info.plist"
 if ! xcrun actool \
   --compile "$APP/Contents/Resources" \

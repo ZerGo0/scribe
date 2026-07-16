@@ -1,6 +1,6 @@
-# ZerGo0Scribe
+# Scribe
 
-ZerGo0Scribe is a simple speech-to-text app for macOS.
+Scribe is a simple speech-to-text app for macOS.
 
 Press a shortcut to start talking. Press it again to stop. Your text is then pasted into the app you are using.
 
@@ -30,21 +30,21 @@ task install
 Open it:
 
 ```sh
-open ~/Applications/ZerGo0Scribe.app
+open ~/Applications/Scribe.app
 ```
 
-ZerGo0Scribe appears in your menu bar. It does not appear in the Dock.
+Scribe appears in your menu bar. It does not appear in the Dock.
 
 ## First-time setup
 
-1. Open ZerGo0Scribe from the menu bar.
+1. Open Scribe from the menu bar.
 2. Open **Settings**.
 3. Enter your provider URL and API key.
 4. Choose a model or enter one manually.
 5. Allow Microphone and Accessibility access.
 6. Choose your dictation shortcut.
 
-If you want ZerGo0Scribe to open automatically, turn on **Launch at login**.
+If you want Scribe to open automatically, turn on **Launch at login**.
 
 ## Use it
 

@@ -86,6 +86,6 @@ final class HistoryStore: ObservableObject {
 
   private static var defaultFileURL: URL {
     let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-    return base.appendingPathComponent("ZerGo0Scribe/history.json")
+    return base.appendingPathComponent("Scribe/history.json")
   }
 }
