@@ -1,0 +1,42 @@
+version: "3"
+
+tasks:
+  default:
+    desc: Build ZerGo0Scribe
+    cmds:
+      - task: build
+
+  build:
+    desc: Build the debug executable
+    cmds:
+      - swift build
+
+  test:
+    desc: Run the unit test suite
+    cmds:
+      - swift test
+
+  bundle:
+    desc: Build the release app bundle
+    cmds:
+      - ./Scripts/build-app.sh
+
+  install:
+    desc: Build and install ZerGo0Scribe for everyday use
+    silent: true
+    cmds:
+      - task: bundle
+      - pkill -x ZerGo0Scribe || true
+      - sleep 0.2
+      - mkdir -p "$HOME/Applications"
+      - rm -rf "$HOME/Applications/ZerGo0Scribe.app"
+      - cp -R "dist/ZerGo0Scribe.app" "$HOME/Applications/ZerGo0Scribe.app"
+      - touch "$HOME/Applications/ZerGo0Scribe.app"
+      - open "$HOME/Applications/ZerGo0Scribe.app"
+      - echo "Installed $HOME/Applications/ZerGo0Scribe.app"
+
+  clean:
+    desc: Remove SwiftPM and packaged build output
+    cmds:
+      - swift package clean
+      - rm -rf dist
