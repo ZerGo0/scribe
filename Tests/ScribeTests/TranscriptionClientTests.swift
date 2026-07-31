@@ -11,7 +11,7 @@ final class TranscriptionClientTests: XCTestCase, @unchecked Sendable {
 
   func testTranscriptionUsesCompatibleEndpointAuthorizationAndMultipartBody() async throws {
     let audio = FileManager.default.temporaryDirectory.appendingPathComponent(
-      UUID().uuidString + ".m4a")
+      UUID().uuidString + ".mp3")
     try Data("audio-data".utf8).write(to: audio)
     defer { try? FileManager.default.removeItem(at: audio) }
 
@@ -21,7 +21,8 @@ final class TranscriptionClientTests: XCTestCase, @unchecked Sendable {
       let body = try XCTUnwrap(bodyData(from: request))
       let bodyText = String(decoding: body, as: UTF8.self)
       XCTAssertTrue(bodyText.contains("name=\"model\"\r\n\r\nspeech-model"))
-      XCTAssertTrue(bodyText.contains("name=\"file\"; filename=\"dictation.m4a\""))
+      XCTAssertTrue(bodyText.contains("name=\"file\"; filename=\"dictation.mp3\""))
+      XCTAssertTrue(bodyText.contains("Content-Type: audio/mpeg"))
       XCTAssertTrue(bodyText.contains("audio-data"))
       return (
         HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!,

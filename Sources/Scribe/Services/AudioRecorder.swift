@@ -20,12 +20,14 @@ final class AudioRecorder {
     let directory = FileManager.default.temporaryDirectory
       .appendingPathComponent("ScribeRecordings", isDirectory: true)
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-    let url = directory.appendingPathComponent("\(UUID().uuidString).m4a")
+    let url = directory.appendingPathComponent("\(UUID().uuidString).wav")
     let settings: [String: Any] = [
-      AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
-      AVSampleRateKey: 44_100,
+      AVFormatIDKey: Int(kAudioFormatLinearPCM),
+      AVSampleRateKey: 16_000,
       AVNumberOfChannelsKey: 1,
-      AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue,
+      AVLinearPCMBitDepthKey: 16,
+      AVLinearPCMIsBigEndianKey: false,
+      AVLinearPCMIsFloatKey: false,
     ]
 
     do {

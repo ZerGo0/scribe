@@ -35,7 +35,7 @@ final class AppController: ObservableObject {
     let targetScreen = isRecording ? nil : ActiveScreenResolver.activeScreen()
     Task {
       if isRecording {
-        stopDictation()
+        await stopDictation()
       } else {
         await startDictation(on: targetScreen)
       }
@@ -59,22 +59,34 @@ final class AppController: ObservableObject {
     }
   }
 
-  func stopDictation() {
+  func stopDictation() async {
     guard isRecording else { return }
+    let recording: AudioRecorder.Recording
     do {
-      let recording = try recorder.stop()
+      recording = try recorder.stop()
       isRecording = false
       pill.hide()
+    } catch {
+      isRecording = false
+      pill.hide()
+      report(error)
+      return
+    }
+
+    do {
+      let mp3URL = try await Task.detached(priority: .userInitiated) {
+        try MP3Encoder.encode(recording.url)
+      }.value
+      try? FileManager.default.removeItem(at: recording.url)
       let job = TranscriptionQueue.Job(
-        audioURL: recording.url,
+        audioURL: mp3URL,
         duration: recording.duration,
         provider: settings.provider,
         apiKey: keychain.readAPIKey()
       )
       Task { await queue.enqueue(job) }
     } catch {
-      isRecording = false
-      pill.hide()
+      try? FileManager.default.removeItem(at: recording.url)
       report(error)
     }
   }

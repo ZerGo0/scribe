@@ -17,9 +17,27 @@ fi
 
 cd "$ROOT"
 swift build -c release
+BIN_DIR=$(swift build -c release --show-bin-path)
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cp "$ROOT/.build/release/Scribe" "$APP/Contents/MacOS/Scribe"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Frameworks" "$APP/Contents/Resources"
+cp "$BIN_DIR/Scribe" "$APP/Contents/MacOS/Scribe"
+LAME_FRAMEWORK=$(find "$ROOT/.build/artifacts" \
+  -path '*/LAME.xcframework/macos-arm64_x86_64/LAME.framework' \
+  -type d \
+  | head -n 1)
+if [ -z "$LAME_FRAMEWORK" ]; then
+  echo "Could not find the built LAME framework."
+  exit 1
+fi
+cp -R "$LAME_FRAMEWORK" "$APP/Contents/Frameworks/LAME.framework"
+install_name_tool \
+  -add_rpath '@executable_path/../Frameworks' \
+  "$APP/Contents/MacOS/Scribe"
+LAME_LICENSE_ROOT="$ROOT/.build/checkouts/LAME-xcframework"
+mkdir -p "$APP/Contents/Resources/ThirdPartyLicenses/LAME"
+cp "$LAME_LICENSE_ROOT/LICENSE" "$APP/Contents/Resources/ThirdPartyLicenses/LAME/"
+cp "$LAME_LICENSE_ROOT/LICENSE-LAME" "$APP/Contents/Resources/ThirdPartyLicenses/LAME/"
+cp "$LAME_LICENSE_ROOT/COPYING" "$APP/Contents/Resources/ThirdPartyLicenses/LAME/"
 cp "$ROOT/Resources/Info.plist" "$APP/Contents/Info.plist"
 if ! xcrun actool \
   --compile "$APP/Contents/Resources" \

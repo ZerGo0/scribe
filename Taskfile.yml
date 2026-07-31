@@ -14,7 +14,14 @@ tasks:
   test:
     desc: Run the unit test suite
     cmds:
-      - swift test
+      - |
+        swift build --build-tests
+        TEST_BIN_DIR=$(swift build --show-bin-path)
+        mkdir -p "$TEST_BIN_DIR/PackageFrameworks"
+        ditto \
+          ".build/artifacts/lame-xcframework/LAME/LAME.xcframework/macos-arm64_x86_64/LAME.framework" \
+          "$TEST_BIN_DIR/PackageFrameworks/LAME.framework"
+        swift test --skip-build
 
   bundle:
     desc: Build the release app bundle

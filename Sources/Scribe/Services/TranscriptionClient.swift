@@ -67,9 +67,9 @@ struct OpenAITranscriptionClient: Transcribing, @unchecked Sendable {
     body.appendUTF8("\(model)\r\n")
     body.appendUTF8("--\(boundary)\r\n")
     body.appendUTF8(
-      "Content-Disposition: form-data; name=\"file\"; filename=\"dictation.m4a\"\r\n"
+      "Content-Disposition: form-data; name=\"file\"; filename=\"dictation.mp3\"\r\n"
     )
-    body.appendUTF8("Content-Type: audio/mp4\r\n\r\n")
+    body.appendUTF8("Content-Type: audio/mpeg\r\n\r\n")
     body.append(try Data(contentsOf: audioURL))
     body.appendUTF8("\r\n--\(boundary)--\r\n")
     return body

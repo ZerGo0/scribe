@@ -8,9 +8,18 @@ let package = Package(
   products: [
     .executable(name: "Scribe", targets: ["Scribe"])
   ],
+  dependencies: [
+    .package(
+      url: "https://github.com/BB9z/LAME-xcframework.git",
+      exact: "3.100.3"
+    )
+  ],
   targets: [
     .executableTarget(
       name: "Scribe",
+      dependencies: [
+        .product(name: "LAME", package: "LAME-xcframework")
+      ],
       linkerSettings: [
         .linkedFramework("AppKit"),
         .linkedFramework("AVFoundation"),

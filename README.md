@@ -9,6 +9,7 @@ Press a shortcut to start talking. Press it again to stop. Your text is then pas
 - Runs from the menu bar
 - Lets you choose your own shortcut
 - Works with OpenAI-compatible providers
+- Uploads bandwidth-efficient 64 kbps MP3 audio
 - Pastes completed dictations automatically
 - Keeps your history for seven days
 - Can start when you log in
@@ -60,6 +61,10 @@ You can view, search, copy, and delete past dictations from **History**.
 - Your API key is saved securely in the macOS Keychain.
 - Recordings are deleted after they are processed.
 - Dictation history is deleted automatically after seven days.
+
+Scribe uses the dynamically linked
+[LAME MP3 encoder](https://github.com/BB9z/LAME-xcframework). Its license files are included in
+the application bundle.
 
 ## Run the tests
 
