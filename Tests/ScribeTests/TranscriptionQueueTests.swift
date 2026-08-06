@@ -22,16 +22,22 @@ final class TranscriptionQueueTests: XCTestCase {
       depthChanged: { _ in }
     )
     let provider = ProviderConfiguration.default
+    let request = TranscriptionRequest(
+      provider: .openAICompatible,
+      remoteConfiguration: provider,
+      appleConfiguration: .default,
+      apiKey: "k"
+    )
 
     await queue.enqueue(
       .init(
-        audioURL: URL(fileURLWithPath: "/tmp/one"), duration: 1, provider: provider, apiKey: "k"))
+        audioURL: URL(fileURLWithPath: "/tmp/one"), duration: 1, request: request))
     await queue.enqueue(
       .init(
-        audioURL: URL(fileURLWithPath: "/tmp/fail"), duration: 1, provider: provider, apiKey: "k"))
+        audioURL: URL(fileURLWithPath: "/tmp/fail"), duration: 1, request: request))
     await queue.enqueue(
       .init(
-        audioURL: URL(fileURLWithPath: "/tmp/three"), duration: 1, provider: provider, apiKey: "k"))
+        audioURL: URL(fileURLWithPath: "/tmp/three"), duration: 1, request: request))
 
     await fulfillment(of: [completed], timeout: 2)
     XCTAssertEqual(results, ["one", "failed:fail", "three"])
@@ -50,8 +56,7 @@ private actor QueueTestClient: Transcribing {
 
   func transcribe(
     audioURL: URL,
-    provider: ProviderConfiguration,
-    apiKey: String
+    request: TranscriptionRequest
   ) async throws -> String {
     let name = audioURL.lastPathComponent
     calls.append(name)

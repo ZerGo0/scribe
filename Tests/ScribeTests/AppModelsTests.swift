@@ -15,6 +15,20 @@ final class AppModelsTests: XCTestCase {
       ProviderConfiguration(baseURL: "ftp://example.com/v1", model: "m").normalizedBaseURL)
   }
 
+  func testAppleSpeechDefaultsToAccentOptimizedEnglishUS() {
+    XCTAssertEqual(AppleSpeechConfiguration.default.mode, .accentOptimized)
+    XCTAssertEqual(AppleSpeechConfiguration.default.normalizedLocaleIdentifier, "en-US")
+  }
+
+  func testAppleSpeechFallsBackToDefaultLocaleForWhitespace() {
+    let configuration = AppleSpeechConfiguration(
+      localeIdentifier: "   ",
+      mode: .dictation,
+      contextualPhrases: []
+    )
+    XCTAssertEqual(configuration.normalizedLocaleIdentifier, "en-US")
+  }
+
   @MainActor
   func testHotKeyDisplayNameUsesCarbonModifiers() {
     let key = HotKeyConfiguration(

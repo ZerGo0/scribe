@@ -1,6 +1,7 @@
 import AVFoundation
 import AppKit
 import ServiceManagement
+import Speech
 
 @MainActor
 enum PermissionManager {
@@ -10,8 +11,22 @@ enum PermissionManager {
 
   static var accessibilityGranted: Bool { AXIsProcessTrusted() }
 
+  static var speechRecognitionGranted: Bool {
+    SFSpeechRecognizer.authorizationStatus() == .authorized
+  }
+
   static func requestMicrophone() async -> Bool {
     await AVCaptureDevice.requestAccess(for: .audio)
+  }
+
+  static func requestSpeechRecognition() async -> Bool {
+    let status = SFSpeechRecognizer.authorizationStatus()
+    if status != .notDetermined { return status == .authorized }
+    return await withCheckedContinuation { continuation in
+      SFSpeechRecognizer.requestAuthorization { status in
+        continuation.resume(returning: status == .authorized)
+      }
+    }
   }
 
   static func requestAccessibility() {

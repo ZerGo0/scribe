@@ -28,6 +28,8 @@
     <true/>
     <key>NSMicrophoneUsageDescription</key>
     <string>Scribe records audio while dictation is active so it can transcribe your speech.</string>
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>Scribe uses Apple's on-device speech recognition to transcribe your recordings.</string>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
 </dict>

@@ -1,14 +1,38 @@
 import Foundation
 
+struct TranscriptionRequest: Sendable {
+  let provider: TranscriptionProvider
+  let remoteConfiguration: ProviderConfiguration
+  let appleConfiguration: AppleSpeechConfiguration
+  let apiKey: String
+}
+
 protocol Transcribing: Sendable {
   func transcribe(
     audioURL: URL,
-    provider: ProviderConfiguration,
-    apiKey: String
+    request: TranscriptionRequest
   ) async throws -> String
 }
 
-struct OpenAITranscriptionClient: Transcribing, @unchecked Sendable {
+struct TranscriptionClient: Transcribing, Sendable {
+  private let remote = OpenAITranscriptionClient()
+  private let apple = AppleSpeechTranscriptionClient()
+
+  func transcribe(audioURL: URL, request: TranscriptionRequest) async throws -> String {
+    switch request.provider {
+    case .openAICompatible:
+      try await remote.transcribe(
+        audioURL: audioURL,
+        provider: request.remoteConfiguration,
+        apiKey: request.apiKey
+      )
+    case .appleOnDevice:
+      try await apple.transcribe(audioURL: audioURL, configuration: request.appleConfiguration)
+    }
+  }
+}
+
+struct OpenAITranscriptionClient: @unchecked Sendable {
   private let session: URLSession
 
   init(session: URLSession = .shared) {

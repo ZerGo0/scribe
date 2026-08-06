@@ -4,7 +4,15 @@ import Security
 
 @MainActor
 final class AppSettings: ObservableObject {
+  @Published var transcriptionProvider: TranscriptionProvider {
+    didSet { persist() }
+  }
+
   @Published var provider: ProviderConfiguration {
+    didSet { persist() }
+  }
+
+  @Published var appleSpeech: AppleSpeechConfiguration {
     didSet { persist() }
   }
 
@@ -22,15 +30,24 @@ final class AppSettings: ObservableObject {
 
   init(defaults: UserDefaults = .standard) {
     self.defaults = defaults
+    transcriptionProvider =
+      defaults.string(forKey: "transcriptionProvider")
+      .flatMap(TranscriptionProvider.init(rawValue:)) ?? .openAICompatible
     provider =
       Self.decode(ProviderConfiguration.self, key: "provider", defaults: defaults) ?? .default
+    appleSpeech =
+      Self.decode(AppleSpeechConfiguration.self, key: "appleSpeech", defaults: defaults) ?? .default
     hotKey = Self.decode(HotKeyConfiguration.self, key: "hotKey", defaults: defaults) ?? .default
     launchAtLogin = defaults.bool(forKey: "launchAtLogin")
   }
 
   private func persist() {
+    defaults.set(transcriptionProvider.rawValue, forKey: "transcriptionProvider")
     if let data = try? encoder.encode(provider) {
       defaults.set(data, forKey: "provider")
+    }
+    if let data = try? encoder.encode(appleSpeech) {
+      defaults.set(data, forKey: "appleSpeech")
     }
     if let data = try? encoder.encode(hotKey) {
       defaults.set(data, forKey: "hotKey")

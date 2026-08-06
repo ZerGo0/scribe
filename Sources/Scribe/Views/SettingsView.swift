@@ -13,7 +13,13 @@ struct SettingsView: View {
   @State private var isLoadingModels = false
   @State private var providerMessage: String?
   @State private var providerMessageIsError = false
+  @State private var appleMode = AppleSpeechMode.accentOptimized
+  @State private var appleLocale = ""
+  @State private var appleLocales: [String] = []
+  @State private var appleVocabulary = ""
+  @State private var isLoadingAppleLocales = false
   @State private var microphoneGranted = PermissionManager.microphoneGranted
+  @State private var speechRecognitionGranted = PermissionManager.speechRecognitionGranted
   @State private var accessibilityGranted = PermissionManager.accessibilityGranted
 
   init(controller: AppController) {
@@ -24,16 +30,20 @@ struct SettingsView: View {
   var body: some View {
     TabView {
       providerTab
-        .tabItem { Label("Provider", systemImage: "server.rack") }
+        .tabItem { Label("Transcription", systemImage: "waveform") }
       generalTab
         .tabItem { Label("General", systemImage: "gearshape") }
     }
     .padding(20)
-    .frame(width: 620, height: 460)
+    .frame(width: 640, height: 540)
     .onAppear {
       baseURL = settings.provider.baseURL
       apiKey = controller.apiKey()
       modelDraft = settings.provider.model
+      appleMode = settings.appleSpeech.mode
+      appleLocale = settings.appleSpeech.localeIdentifier
+      appleVocabulary = settings.appleSpeech.contextualPhrases.joined(separator: ", ")
+      loadAppleLocales()
       syncModelSelection()
       refreshPermissionState()
     }
@@ -43,7 +53,10 @@ struct SettingsView: View {
       refreshPermissionState()
     }
     .task {
-      while !Task.isCancelled && (!microphoneGranted || !accessibilityGranted) {
+      while !Task.isCancelled
+        && (!microphoneGranted || !accessibilityGranted
+          || (settings.transcriptionProvider == .appleOnDevice && !speechRecognitionGranted))
+      {
         refreshPermissionState()
         try? await Task.sleep(for: .seconds(1))
       }
@@ -52,12 +65,115 @@ struct SettingsView: View {
 
   private var providerTab: some View {
     VStack(alignment: .leading, spacing: 20) {
-      connectionGroup
-      transcriptionGroup
+      providerSelectionGroup
+      if settings.transcriptionProvider == .openAICompatible {
+        connectionGroup
+        transcriptionGroup
+      } else {
+        appleSpeechGroup
+      }
       Spacer(minLength: 0)
     }
     .padding(.horizontal, 8)
     .padding(.top, 8)
+  }
+
+  private var providerSelectionGroup: some View {
+    GroupBox("Provider") {
+      Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 12) {
+        GridRow {
+          Text("Transcribe with")
+          Picker("Transcribe with", selection: $settings.transcriptionProvider) {
+            ForEach(TranscriptionProvider.allCases, id: \.self) { provider in
+              Text(provider.displayName).tag(provider)
+            }
+          }
+          .labelsHidden()
+          .frame(maxWidth: .infinity, alignment: .leading)
+        }
+      }
+      .padding(4)
+      .frame(maxWidth: .infinity)
+    }
+    .frame(maxWidth: .infinity)
+  }
+
+  private var appleSpeechGroup: some View {
+    GroupBox("Apple Speech") {
+      Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 12) {
+        GridRow {
+          Text("Mode")
+          Picker("Mode", selection: $appleMode) {
+            ForEach(AppleSpeechMode.allCases, id: \.self) { mode in
+              Text(mode.displayName).tag(mode)
+            }
+          }
+          .labelsHidden()
+          .frame(maxWidth: .infinity, alignment: .leading)
+        }
+
+        Text(appleMode.detail)
+          .font(.callout)
+          .foregroundStyle(.secondary)
+          .gridCellColumns(2)
+
+        Divider().gridCellColumns(2)
+
+        GridRow {
+          Text("Language")
+          HStack(spacing: 8) {
+            Picker("Language", selection: $appleLocale) {
+              if appleLocales.isEmpty, !appleLocale.isEmpty {
+                Text(localeDisplayName(appleLocale)).tag(appleLocale)
+              }
+              ForEach(appleLocales, id: \.self) { identifier in
+                Text(localeDisplayName(identifier)).tag(identifier)
+              }
+            }
+            .labelsHidden()
+            .pickerStyle(.menu)
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            if isLoadingAppleLocales {
+              ProgressView().controlSize(.small)
+            }
+          }
+        }
+
+        Divider().gridCellColumns(2)
+
+        GridRow(alignment: .top) {
+          Text("Names and terms")
+          TextField(
+            "Comma-separated words Apple should expect",
+            text: $appleVocabulary,
+            prompt: Text("Scribe, product names, people…")
+          )
+          .labelsHidden()
+          .textFieldStyle(.roundedBorder)
+        }
+
+        Text("Audio stays on this Mac. Required language assets download automatically.")
+          .font(.callout)
+          .foregroundStyle(.secondary)
+          .gridCellColumns(2)
+
+        Divider().gridCellColumns(2)
+
+        HStack {
+          Spacer()
+          Button("Save") { saveAppleSpeech() }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .disabled(appleLocale.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
+        .gridCellColumns(2)
+      }
+      .padding(4)
+      .frame(maxWidth: .infinity)
+    }
+    .frame(maxWidth: .infinity)
+    .onChange(of: appleMode) { _, _ in loadAppleLocales() }
   }
 
   private var connectionGroup: some View {
@@ -253,6 +369,23 @@ struct SettingsView: View {
             }
           }
 
+          if settings.transcriptionProvider == .appleOnDevice {
+            Divider().gridCellColumns(2)
+
+            GridRow {
+              Text("Speech Recognition")
+              permissionControls(
+                granted: speechRecognitionGranted,
+                actionTitle: "Request Access"
+              ) {
+                Task {
+                  _ = await PermissionManager.requestSpeechRecognition()
+                  refreshPermissionState()
+                }
+              }
+            }
+          }
+
           Divider().gridCellColumns(2)
 
           GridRow {
@@ -324,6 +457,41 @@ struct SettingsView: View {
     settings.provider.model = modelDraft.trimmingCharacters(in: .whitespacesAndNewlines)
   }
 
+  private func saveAppleSpeech() {
+    settings.appleSpeech = AppleSpeechConfiguration(
+      localeIdentifier: appleLocale.trimmingCharacters(in: .whitespacesAndNewlines),
+      mode: appleMode,
+      contextualPhrases:
+        appleVocabulary
+        .split(separator: ",")
+        .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        .filter { !$0.isEmpty }
+    )
+    providerMessage = "Apple Speech settings saved."
+    providerMessageIsError = false
+  }
+
+  private func loadAppleLocales() {
+    let requestedMode = appleMode
+    isLoadingAppleLocales = true
+    Task {
+      var identifiers = await controller.appleSpeechLocaleIdentifiers(for: requestedMode)
+      guard appleMode == requestedMode else { return }
+      let selected = appleLocale.replacingOccurrences(of: "_", with: "-")
+      if !selected.isEmpty, !identifiers.contains(selected) {
+        identifiers.insert(selected, at: 0)
+      }
+      appleLocale = identifiers.contains(selected) ? selected : identifiers.first ?? "en-US"
+      appleLocales = identifiers
+      isLoadingAppleLocales = false
+    }
+  }
+
+  private func localeDisplayName(_ identifier: String) -> String {
+    let name = Locale.current.localizedString(forIdentifier: identifier) ?? identifier
+    return "\(name) (\(identifier))"
+  }
+
   private func loadModels() {
     saveConnection()
     isLoadingModels = true
@@ -346,6 +514,7 @@ struct SettingsView: View {
 
   private func refreshPermissionState() {
     microphoneGranted = PermissionManager.microphoneGranted
+    speechRecognitionGranted = PermissionManager.speechRecognitionGranted
     accessibilityGranted = PermissionManager.accessibilityGranted
     if accessibilityGranted
       && controller.lastError == DictationError.accessibilityDenied.localizedDescription

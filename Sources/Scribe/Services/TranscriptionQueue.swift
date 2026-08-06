@@ -4,8 +4,7 @@ actor TranscriptionQueue {
   struct Job: Sendable {
     let audioURL: URL
     let duration: TimeInterval
-    let provider: ProviderConfiguration
-    let apiKey: String
+    let request: TranscriptionRequest
   }
 
   typealias Completion = @MainActor @Sendable (Job, Result<String, Error>) -> Void
@@ -45,8 +44,7 @@ actor TranscriptionQueue {
         result = .success(
           try await client.transcribe(
             audioURL: job.audioURL,
-            provider: job.provider,
-            apiKey: job.apiKey
+            request: job.request
           ))
       } catch {
         result = .failure(error)

@@ -17,7 +17,8 @@ final class AppController: ObservableObject {
   private let clipboard = ClipboardInserter()
   private let sounds = SoundFeedback()
   private let pill = RecordingPillController()
-  private let client = OpenAITranscriptionClient()
+  private let client = TranscriptionClient()
+  private let remoteClient = OpenAITranscriptionClient()
   private var queue: TranscriptionQueue!
 
   init(settings: AppSettings? = nil, history: HistoryStore? = nil) {
@@ -45,10 +46,17 @@ final class AppController: ObservableObject {
   func startDictation(on targetScreen: NSScreen? = nil) async {
     guard !isRecording else { return }
     do {
-      guard settings.provider.normalizedBaseURL != nil else {
-        throw DictationError.invalidProviderURL
+      switch settings.transcriptionProvider {
+      case .openAICompatible:
+        guard settings.provider.normalizedBaseURL != nil else {
+          throw DictationError.invalidProviderURL
+        }
+        guard !keychain.readAPIKey().isEmpty else { throw DictationError.missingAPIKey }
+      case .appleOnDevice:
+        guard await PermissionManager.requestSpeechRecognition() else {
+          throw DictationError.speechRecognitionDenied
+        }
       }
-      guard !keychain.readAPIKey().isEmpty else { throw DictationError.missingAPIKey }
       let startedAt = try await recorder.start()
       lastError = nil
       isRecording = true
@@ -74,15 +82,24 @@ final class AppController: ObservableObject {
     }
 
     do {
-      let mp3URL = try await Task.detached(priority: .userInitiated) {
-        try MP3Encoder.encode(recording.url)
-      }.value
-      try? FileManager.default.removeItem(at: recording.url)
+      let audioURL: URL
+      if settings.transcriptionProvider == .openAICompatible {
+        audioURL = try await Task.detached(priority: .userInitiated) {
+          try MP3Encoder.encode(recording.url)
+        }.value
+        try? FileManager.default.removeItem(at: recording.url)
+      } else {
+        audioURL = recording.url
+      }
       let job = TranscriptionQueue.Job(
-        audioURL: mp3URL,
+        audioURL: audioURL,
         duration: recording.duration,
-        provider: settings.provider,
-        apiKey: keychain.readAPIKey()
+        request: TranscriptionRequest(
+          provider: settings.transcriptionProvider,
+          remoteConfiguration: settings.provider,
+          appleConfiguration: settings.appleSpeech,
+          apiKey: settings.transcriptionProvider == .openAICompatible ? keychain.readAPIKey() : ""
+        )
       )
       Task { await queue.enqueue(job) }
     } catch {
@@ -113,7 +130,11 @@ final class AppController: ObservableObject {
   }
 
   func fetchModels(apiKey: String) async throws -> [String] {
-    try await client.models(provider: settings.provider, apiKey: apiKey)
+    try await remoteClient.models(provider: settings.provider, apiKey: apiKey)
+  }
+
+  func appleSpeechLocaleIdentifiers(for mode: AppleSpeechMode) async -> [String] {
+    await AppleSpeechTranscriptionClient().supportedLocaleIdentifiers(for: mode)
   }
 
   func setLaunchAtLogin(_ enabled: Bool) {
