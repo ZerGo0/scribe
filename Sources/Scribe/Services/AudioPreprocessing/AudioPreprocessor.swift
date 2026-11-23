@@ -8,9 +8,14 @@ enum AudioPreprocessor {
   private static let highPassCutoffHz = 80.0
   private static let butterworthQ = 1 / 2.0.squareRoot()
   private static let targetPeakDecibels: Float = -3
-  private static let maximumGainDecibels: Float = 30
-  private static let maximumChunkSeconds = 30.0
+  private static let maximumGainDecibels: Float = 12
+  private static let maximumChunkSeconds = 14.0
   private static let maximumPauseSeconds = 0.5
+  private static let speechThreshold: Float = 0.6
+  private static let vadPaddingSeconds = 0.15
+  private static let extraPaddingSeconds = 0.15
+  private static let minimumPauseSeconds = 0.3
+  private static let maximumSegmentSeconds = 60.0
 
   static func speechChunks(from url: URL, options: AudioProcessingOptions) async throws -> [[Float]] {
     var samples = try AudioConverter().resampleAudioFile(url)
@@ -18,15 +23,20 @@ enum AudioPreprocessor {
     if options.normalizeLevel { samples = normalized(samples) }
     guard options.trimSilence else { return samples.isEmpty ? [] : [samples] }
 
-    let vad = try await VadManager()
+    let vad = try await VadManager(config: VadConfig(defaultThreshold: speechThreshold))
     let segments = try await vad.segmentSpeech(
       samples,
-      config: VadSegmentationConfig(maxSpeechDuration: maximumChunkSeconds)
+      config: VadSegmentationConfig(
+        minSilenceDuration: minimumPauseSeconds,
+        maxSpeechDuration: maximumSegmentSeconds,
+        speechPadding: vadPaddingSeconds
+      )
     )
+    let extraPadding = sampleCount(seconds: extraPaddingSeconds)
     return chunks(
       samples,
       speechRanges: segments.map {
-        $0.startSample(sampleRate: sampleRate)..<$0.endSample(sampleRate: sampleRate)
+        ($0.startSample(sampleRate: sampleRate) - extraPadding)..<($0.endSample(sampleRate: sampleRate) + extraPadding)
       },
       maximumChunkSamples: sampleCount(seconds: maximumChunkSeconds),
       maximumPauseSamples: sampleCount(seconds: maximumPauseSeconds)
@@ -99,11 +109,7 @@ enum AudioPreprocessor {
 
       var pause: [Float] = []
       if let previousEnd {
-        let gap = start - previousEnd
-        pause =
-          gap <= maximumPauseSamples
-          ? Array(samples[previousEnd..<start])
-          : Array(repeating: 0, count: maximumPauseSamples)
+        pause = Array(samples[max(previousEnd, start - maximumPauseSamples)..<start])
       }
       let speech = samples[start..<end]
 

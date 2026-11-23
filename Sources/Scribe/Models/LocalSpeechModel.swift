@@ -1,36 +1,38 @@
 import Foundation
 
 enum LocalSpeechModel: String, Codable, CaseIterable, Equatable, Sendable {
-  case parakeetV3
-  case qwen3ASR
-  case whisperLargeV3Turbo
+  case parakeetUltra
+  case parakeetEnglish
 
-  static let `default` = LocalSpeechModel.parakeetV3
+  static let `default` = LocalSpeechModel.parakeetUltra
 
   var displayName: String {
     switch self {
-    case .parakeetV3: "Parakeet TDT v3"
-    case .qwen3ASR: "Qwen3-ASR 0.6B (5-bit)"
-    case .whisperLargeV3Turbo: "Whisper Large-v3 Turbo"
+    case .parakeetUltra: "Parakeet Ultra"
+    case .parakeetEnglish: "Parakeet English"
     }
   }
 
   var detail: String {
     switch self {
-    case .parakeetV3:
-      "Fastest. Runs on the Neural Engine. Supports English and 24 other European languages."
-    case .qwen3ASR:
-      "Most accurate in benchmarks. Runs on the GPU. Supports 52 languages and dialects."
-    case .whisperLargeV3Turbo:
-      "Runs on the Neural Engine. Supports 99 languages."
+    case .parakeetUltra:
+      "Supports English and 24 other European languages. Can switch between languages while you speak."
+    case .parakeetEnglish:
+      "English only, so it never switches to another language. Best if you dictate only in English."
     }
   }
 
   var approximateDownloadMegabytes: Int {
     switch self {
-    case .parakeetV3: 590
-    case .qwen3ASR: 1_100
-    case .whisperLargeV3Turbo: 630
+    case .parakeetUltra: 730
+    case .parakeetEnglish: 570
+    }
+  }
+
+  var fixedLanguageCode: String? {
+    switch self {
+    case .parakeetUltra: nil
+    case .parakeetEnglish: "en"
     }
   }
 }

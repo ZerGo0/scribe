@@ -42,10 +42,6 @@ struct LocalModelTranscriptionClient: Sendable {
   }
 
   private func engine(for model: LocalSpeechModel) -> any LocalSpeechEngine {
-    switch model {
-    case .parakeetV3: ParakeetEngine()
-    case .qwen3ASR: Qwen3Engine()
-    case .whisperLargeV3Turbo: WhisperEngine()
-    }
+    ParakeetEngine(model: model)
   }
 }

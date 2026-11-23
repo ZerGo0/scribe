@@ -35,6 +35,27 @@ final class AppModelsTests: XCTestCase {
     )
   }
 
+  func testEnglishLocalModelAlwaysUsesEnglishForCleanup() {
+    XCTAssertEqual(localRequest(model: .parakeetEnglish, language: "de").spokenLanguageCode, "en")
+    XCTAssertEqual(localRequest(model: .parakeetUltra, language: "de").spokenLanguageCode, "de")
+    XCTAssertNil(localRequest(model: .parakeetUltra, language: nil).spokenLanguageCode)
+  }
+
+  private func localRequest(model: LocalSpeechModel, language: String?) -> TranscriptionRequest {
+    TranscriptionRequest(
+      provider: .localModel,
+      remoteConfiguration: .default,
+      appleConfiguration: .default,
+      localModel: model,
+      localModelLanguage: language,
+      vocabulary: [],
+      replacements: [],
+      audioProcessing: .default,
+      textCleanup: .default,
+      apiKey: ""
+    )
+  }
+
   func testVocabularyPromptIsNilWithoutTerms() {
     XCTAssertNil(Vocabulary.prompt([]))
     XCTAssertEqual(Vocabulary.prompt(["Scribe", "Zergo"]), "Scribe, Zergo")
@@ -42,9 +63,9 @@ final class AppModelsTests: XCTestCase {
 
   func testLocalModelNotDownloadedErrorNamesTheModel() {
     XCTAssertEqual(
-      DictationError.localModelNotDownloaded(LocalSpeechModel.parakeetV3.displayName)
+      DictationError.localModelNotDownloaded(LocalSpeechModel.parakeetUltra.displayName)
         .errorDescription,
-      "Download the Parakeet TDT v3 model in Settings."
+      "Download the Parakeet Ultra model in Settings."
     )
   }
 

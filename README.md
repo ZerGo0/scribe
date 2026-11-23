@@ -10,9 +10,13 @@ Press a shortcut to start talking. Press it again to stop. Your text is then pas
 - Lets you choose your own shortcut
 - Transcribes entirely on-device with Apple's Speech framework
 - Includes Apple's heavy-accent recognition hint
-- Uses your list of names and terms with every provider
-- Transcribes on-device with a downloaded model: Parakeet TDT v3, Qwen3-ASR 0.6B, or Whisper
-  Large-v3 Turbo
+- Uses your list of names and terms with every provider, and replaces words that still come out
+  wrong
+- Keeps the microphone ready so the first word is not lost, and records a short moment after you
+  stop
+- Warns when the microphone is distorted, very quiet, or a low-quality Bluetooth microphone
+- Transcribes on-device with a downloaded model: Parakeet Ultra for 25 languages, or Parakeet
+  English for English only
 - Cleans recordings before transcription: removes low hum, normalizes volume, and trims silence
 - Cleans the text before pasting: removes filler words and repeated words, and turns "new line"
   into a line break
@@ -25,7 +29,7 @@ Press a shortcut to start talking. Press it again to stop. Your text is then pas
 ## What you need
 
 - macOS 15 or newer on Apple silicon
-- Xcode with the Metal Toolchain (`xcodebuild -downloadComponent MetalToolchain`)
+- Xcode
 - [Task](https://taskfile.dev)
 
 ## Run the app
@@ -49,8 +53,7 @@ Scribe appears in your menu bar. It does not appear in the Dock.
 1. Open Scribe from the menu bar.
 2. Open **Settings**.
 3. Choose **Apple On-Device**, **Local Model**, or **OpenAI-compatible** for transcription.
-4. For Apple, choose a speech mode and language. For a local model, choose a model and click
-   **Download**. For a remote provider, enter its URL, API key, and model.
+4. For Apple, choose a speech mode and language. For a local model, choose a model and click **Download**. For a remote provider, enter its URL, API key, and model.
 5. Allow Microphone and Accessibility access.
 6. Choose your dictation shortcut.
 
@@ -91,12 +94,16 @@ private AFM 3 dictation transcriber.
 
 | Model | Download | Runs on | Languages |
 | --- | --- | --- | --- |
-| Parakeet TDT v3 | About 590 MB | Neural Engine | English and 24 other European languages |
-| Qwen3-ASR 0.6B (5-bit) | About 1.1 GB | GPU | 52 languages and dialects |
-| Whisper Large-v3 Turbo | About 630 MB | Neural Engine | 99 languages |
+| Parakeet Ultra | About 730 MB | Neural Engine | English and 24 other European languages |
+| Parakeet English | About 570 MB | Neural Engine | English only |
 
-Choose **Automatic** or a fixed language for each local model. Parakeet also downloads a small
-helper model that applies your names and terms.
+Parakeet Ultra can switch between languages that use the same alphabet, such as English and German,
+even when you choose a language. If you dictate only in English, use Parakeet English: it never
+switches to another language. For Parakeet Ultra, choose **Automatic** or a fixed language. Scribe
+uses it to remove the right filler words and to keep the right alphabet.
+
+Both downloads include a small helper model that applies your names and terms. Scribe runs it only
+when your list of names and terms is not empty.
 
 Models are saved in `~/Library/Application Support/Scribe/Models`. Scribe loads a model only while
 it transcribes, then frees its memory. You can delete a model in **Settings**.
@@ -105,6 +112,10 @@ it transcribes, then frees its memory. You can delete a model in **Settings**.
 
 Add names, product names, and special words in **Settings > Names and Terms**. Scribe sends them to
 Apple Speech, the local models, and OpenAI-compatible providers to improve spelling.
+
+Scribe also writes each entry with your exact spelling and capitals. If a word still comes out
+wrong, add a replacement, for example "so paar Base" to "Supabase".
+Scribe replaces whole words after every transcription and ignores case.
 
 ## Cleanup
 
@@ -125,9 +136,7 @@ it.
 
 ## Third-party software
 
-Scribe uses [FluidAudio](https://github.com/FluidInference/FluidAudio),
-[Speech Swift](https://github.com/soniqo/speech-swift),
-[WhisperKit](https://github.com/argmaxinc/WhisperKit), and the dynamically linked
+Scribe uses [FluidAudio](https://github.com/FluidInference/FluidAudio) and the dynamically linked
 [LAME MP3 encoder](https://github.com/BB9z/LAME-xcframework). Their license files are included in
 the application bundle.
 

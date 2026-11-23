@@ -29,6 +29,7 @@ final class TranscriptionQueueTests: XCTestCase {
       localModel: .default,
       localModelLanguage: nil,
       vocabulary: [],
+      replacements: [],
       audioProcessing: .default,
       textCleanup: .default,
       apiKey: "k"

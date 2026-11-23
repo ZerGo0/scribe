@@ -30,6 +30,36 @@ struct VocabularySettingsPane: View {
       } footer: {
         Text(footer)
       }
+
+      Section {
+        ForEach($settings.replacements) { $rule in
+          HStack(spacing: 8) {
+            TextField("Heard", text: $rule.heard, prompt: Text("so paar Base"))
+            Image(systemName: "arrow.right")
+              .foregroundStyle(.secondary)
+              .accessibilityHidden(true)
+            TextField("Replace with", text: $rule.replacement, prompt: Text("Supabase"))
+            Button(role: .destructive) {
+              settings.replacements.removeAll { $0.id == rule.id }
+            } label: {
+              Image(systemName: "trash")
+            }
+            .buttonStyle(.borderless)
+            .help("Delete replacement")
+            .accessibilityLabel("Delete replacement")
+          }
+          .labelsHidden()
+        }
+        Button("Add Replacement") {
+          settings.replacements.append(TextReplacement(heard: "", replacement: ""))
+        }
+      } header: {
+        Text("Replacements")
+      } footer: {
+        Text(
+          "Scribe changes these words in every transcript. Use them for words that still come out wrong. Matching ignores case and only replaces whole words."
+        )
+      }
     }
     .formStyle(.grouped)
     .onAppear { draft = Vocabulary.prompt(settings.vocabulary) ?? "" }

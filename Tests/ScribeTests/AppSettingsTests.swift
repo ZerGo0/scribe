@@ -17,7 +17,7 @@ final class AppSettingsTests: XCTestCase {
       mode: .generalPurpose
     )
     first.vocabulary = ["Scribe", "Zergo"]
-    first.localModel = .qwen3ASR
+    first.replacements = [TextReplacement(heard: "so paar Base", replacement: "Supabase")]
     first.localModelLanguage = "de"
     first.audioProcessing = AudioProcessingOptions(
       removeLowHum: false,
@@ -32,7 +32,8 @@ final class AppSettingsTests: XCTestCase {
     XCTAssertEqual(second.provider, first.provider)
     XCTAssertEqual(second.appleSpeech, first.appleSpeech)
     XCTAssertEqual(second.vocabulary, ["Scribe", "Zergo"])
-    XCTAssertEqual(second.localModel, .qwen3ASR)
+    XCTAssertEqual(second.replacements, first.replacements)
+    XCTAssertEqual(second.localModel, .parakeetUltra)
     XCTAssertEqual(second.localModelLanguage, "de")
     XCTAssertEqual(second.audioProcessing, first.audioProcessing)
     XCTAssertEqual(second.hotKey, first.hotKey)
@@ -57,6 +58,7 @@ final class AppSettingsTests: XCTestCase {
     XCTAssertEqual(settings.localModel, .default)
     XCTAssertEqual(settings.audioProcessing, .default)
     XCTAssertEqual(settings.vocabulary, [])
+    XCTAssertEqual(settings.replacements, [])
     XCTAssertNil(settings.localModelLanguage)
   }
 

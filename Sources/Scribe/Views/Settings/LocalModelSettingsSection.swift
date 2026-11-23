@@ -20,16 +20,20 @@ struct LocalModelSettingsSection: View {
       }
     }
 
-    Section {
-      Picker("Language", selection: languageSelection) {
-        Text("Automatic").tag(String?.none)
-        Divider()
-        ForEach(languageOptions, id: \.code) { option in
-          Text(option.name).tag(Optional(option.code))
+    if settings.localModel.fixedLanguageCode == nil {
+      Section {
+        Picker("Language", selection: languageSelection) {
+          Text("Automatic").tag(String?.none)
+          Divider()
+          ForEach(languageOptions, id: \.code) { option in
+            Text(option.name).tag(Optional(option.code))
+          }
         }
+      } footer: {
+        Text(
+          "Scribe uses the language to remove the right filler words. \(settings.localModel.displayName) can still switch between languages that use the same alphabet, such as English and German. To get only English, choose Parakeet English."
+        )
       }
-    } footer: {
-      Text("Choose your language if automatic detection picks the wrong one.")
     }
   }
 

@@ -28,6 +28,11 @@ struct MenuBarContent: View {
       Label(error, systemImage: "exclamationmark.triangle")
     }
 
+    if let warning = controller.inputWarning {
+      Divider()
+      Label(warning, systemImage: "mic.badge.xmark")
+    }
+
     if !history.transcripts.isEmpty {
       Divider()
       Section("Click to Copy") {

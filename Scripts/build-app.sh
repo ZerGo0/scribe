@@ -47,11 +47,6 @@ for RESOURCE_BUNDLE in "$BIN_DIR"/*.bundle; do
   [ -d "$RESOURCE_BUNDLE" ] || continue
   cp -R "$RESOURCE_BUNDLE" "$APP/Contents/Resources/"
 done
-if [ ! -f "$APP/Contents/Resources/mlx-swift_Cmlx.bundle/Contents/Resources/default.metallib" ]; then
-  echo "Could not find the compiled MLX Metal library."
-  echo "Install the Metal Toolchain: xcodebuild -downloadComponent MetalToolchain"
-  exit 1
-fi
 LICENSES="$APP/Contents/Resources/ThirdPartyLicenses"
 for CHECKOUT in "$ROOT"/.build/checkouts/*; do
   NAME=$(basename "$CHECKOUT")

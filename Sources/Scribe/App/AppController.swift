@@ -7,6 +7,7 @@ final class AppController: ObservableObject {
   @Published private(set) var isRecording = false
   @Published private(set) var queuedCount = 0
   @Published var lastError: String?
+  @Published private(set) var inputWarning: String?
 
   let settings: AppSettings
   let history: HistoryStore
@@ -21,6 +22,7 @@ final class AppController: ObservableObject {
   private let client = TranscriptionClient()
   private let remoteClient = OpenAITranscriptionClient()
   private var queue: TranscriptionQueue!
+  private var isStopping = false
 
   init(settings: AppSettings? = nil, history: HistoryStore? = nil) {
     self.settings = settings ?? AppSettings()
@@ -31,6 +33,7 @@ final class AppController: ObservableObject {
       depthChanged: { [weak self] count in self?.queueDepthChanged(count) }
     )
     registerHotKey(self.settings.hotKey)
+    recorder.prepareIfAuthorized()
   }
 
   func toggleDictation() {
@@ -73,12 +76,15 @@ final class AppController: ObservableObject {
   }
 
   func stopDictation() async {
-    guard isRecording else { return }
+    guard isRecording, !isStopping else { return }
+    isStopping = true
+    defer { isStopping = false }
+    pill.show(.transcribing, on: nil)
     let recording: AudioRecorder.Recording
     do {
-      recording = try recorder.stop()
+      recording = try await recorder.stop()
       isRecording = false
-      pill.show(.transcribing, on: nil)
+      inputWarning = recording.warning?.message
     } catch {
       isRecording = false
       pill.hide()
@@ -96,6 +102,7 @@ final class AppController: ObservableObject {
         localModel: settings.localModel,
         localModelLanguage: settings.localModelLanguage,
         vocabulary: settings.vocabulary,
+        replacements: settings.replacements,
         audioProcessing: settings.audioProcessing,
         textCleanup: settings.textCleanup,
         apiKey: settings.transcriptionProvider == .openAICompatible ? keychain.readAPIKey() : ""

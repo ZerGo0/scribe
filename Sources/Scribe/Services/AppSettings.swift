@@ -20,6 +20,10 @@ final class AppSettings: ObservableObject {
     didSet { persist() }
   }
 
+  @Published var replacements: [TextReplacement] {
+    didSet { persist() }
+  }
+
   @Published var localModel: LocalSpeechModel {
     didSet { persist() }
   }
@@ -62,6 +66,8 @@ final class AppSettings: ObservableObject {
       ?? Self.decode(LegacyAppleSpeechVocabulary.self, key: "appleSpeech", defaults: defaults)?
       .contextualPhrases
       ?? []
+    replacements =
+      Self.decode([TextReplacement].self, key: "replacements", defaults: defaults) ?? []
     localModel =
       defaults.string(forKey: "localModel")
       .flatMap(LocalSpeechModel.init(rawValue:)) ?? .default
@@ -84,6 +90,9 @@ final class AppSettings: ObservableObject {
       defaults.set(data, forKey: "appleSpeech")
     }
     defaults.set(vocabulary, forKey: "vocabulary")
+    if let data = try? encoder.encode(replacements) {
+      defaults.set(data, forKey: "replacements")
+    }
     defaults.set(localModel.rawValue, forKey: "localModel")
     if let localModelLanguage {
       defaults.set(localModelLanguage, forKey: "localModelLanguage")

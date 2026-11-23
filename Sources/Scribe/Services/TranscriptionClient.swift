@@ -7,13 +7,14 @@ struct TranscriptionRequest: Sendable {
   let localModel: LocalSpeechModel
   let localModelLanguage: String?
   let vocabulary: [String]
+  let replacements: [TextReplacement]
   let audioProcessing: AudioProcessingOptions
   let textCleanup: TextCleanupOptions
   let apiKey: String
 
   var spokenLanguageCode: String? {
     switch provider {
-    case .localModel: localModelLanguage
+    case .localModel: localModel.fixedLanguageCode ?? localModelLanguage
     case .appleOnDevice:
       Locale(identifier: appleConfiguration.normalizedLocaleIdentifier).language.languageCode?.identifier
     case .openAICompatible: nil
@@ -35,10 +36,14 @@ struct TranscriptionClient: Transcribing, Sendable {
 
   func transcribe(audioURL: URL, request: TranscriptionRequest) async throws -> String {
     let text = try await rawTranscript(audioURL: audioURL, request: request)
-    let cleaned = TextCleaner.cleaned(
-      text,
-      options: request.textCleanup,
-      languageCode: request.spokenLanguageCode
+    let spellings = request.vocabulary.map { TextReplacement(heard: $0, replacement: $0) }
+    let cleaned = TextReplacement.apply(
+      spellings + request.replacements,
+      to: TextCleaner.cleaned(
+        text,
+        options: request.textCleanup,
+        languageCode: request.spokenLanguageCode
+      )
     )
     guard !cleaned.isEmpty else { throw DictationError.noSpeechDetected }
     return cleaned

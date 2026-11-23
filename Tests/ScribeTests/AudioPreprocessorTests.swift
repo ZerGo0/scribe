@@ -19,9 +19,15 @@ final class AudioPreprocessorTests: XCTestCase {
   }
 
   func testNormalizationRaisesPeakToMinusThreeDecibels() {
-    let quiet = sine(frequency: 440, seconds: 0.5).map { $0 * 0.1 }
+    let quiet = sine(frequency: 440, seconds: 0.5).map { $0 * 0.3 }
     let normalized = AudioPreprocessor.normalized(quiet)
     XCTAssertEqual(peak(normalized[...]), powf(10, -3.0 / 20), accuracy: 0.001)
+  }
+
+  func testNormalizationLimitsGainToTwelveDecibels() {
+    let veryQuiet = sine(frequency: 440, seconds: 0.5).map { $0 * 0.01 }
+    let normalized = AudioPreprocessor.normalized(veryQuiet)
+    XCTAssertEqual(peak(normalized[...]), 0.01 * powf(10, 12.0 / 20), accuracy: 0.0001)
   }
 
   func testNormalizationLeavesSilenceUnchanged() {
@@ -29,7 +35,7 @@ final class AudioPreprocessorTests: XCTestCase {
     XCTAssertEqual(AudioPreprocessor.normalized(silence), silence)
   }
 
-  func testChunksKeepShortPausesAndShortenLongPauses() {
+  func testChunksKeepShortPausesAndShortenLongPausesWithRealAudio() {
     let samples = (0..<100).map(Float.init)
     let chunks = AudioPreprocessor.chunks(
       samples,
@@ -40,7 +46,7 @@ final class AudioPreprocessorTests: XCTestCase {
 
     XCTAssertEqual(chunks.count, 1)
     XCTAssertEqual(Array(chunks[0][0..<20]), Array(samples[0..<20]))
-    XCTAssertEqual(Array(chunks[0][20..<25]), [0, 0, 0, 0, 0])
+    XCTAssertEqual(Array(chunks[0][20..<25]), Array(samples[55..<60]))
     XCTAssertEqual(Array(chunks[0][25..<35]), Array(samples[60..<70]))
   }
 
