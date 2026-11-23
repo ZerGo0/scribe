@@ -16,6 +16,11 @@ final class ClipboardInserter {
     self.restoreDelay = restoreDelay
   }
 
+  static func copy(_ text: String, to pasteboard: NSPasteboard = .general) {
+    pasteboard.clearContents()
+    pasteboard.setString(text, forType: .string)
+  }
+
   func insert(_ text: String) async throws {
     guard AXIsProcessTrusted() else { throw DictationError.accessibilityDenied }
     let snapshot = capture()

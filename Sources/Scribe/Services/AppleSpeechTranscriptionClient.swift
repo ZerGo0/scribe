@@ -28,7 +28,11 @@ struct AppleSpeechTranscriptionClient: Sendable {
     }
   }
 
-  func transcribe(audioURL: URL, configuration: AppleSpeechConfiguration) async throws -> String {
+  func transcribe(
+    audioURL: URL,
+    configuration: AppleSpeechConfiguration,
+    vocabulary: [String]
+  ) async throws -> String {
     guard await PermissionManager.requestSpeechRecognition() else {
       throw DictationError.speechRecognitionDenied
     }
@@ -36,19 +40,22 @@ struct AppleSpeechTranscriptionClient: Sendable {
     if #available(macOS 26.0, *), configuration.mode != .legacy {
       return try await transcribeWithSpeechAnalyzer(
         audioURL: audioURL,
-        configuration: configuration
+        configuration: configuration,
+        vocabulary: vocabulary
       )
     }
     return try await transcribeWithLegacyRecognizer(
       audioURL: audioURL,
-      configuration: configuration
+      configuration: configuration,
+      vocabulary: vocabulary
     )
   }
 
   @available(macOS 26.0, *)
   private func transcribeWithSpeechAnalyzer(
     audioURL: URL,
-    configuration: AppleSpeechConfiguration
+    configuration: AppleSpeechConfiguration,
+    vocabulary: [String]
   ) async throws -> String {
     let requestedLocale = Locale(identifier: configuration.normalizedLocaleIdentifier)
 
@@ -60,7 +67,7 @@ struct AppleSpeechTranscriptionClient: Sendable {
       return try await analyze(
         audioURL: audioURL,
         transcriber: transcriber,
-        contextualPhrases: configuration.contextualPhrases
+        contextualPhrases: vocabulary
       )
     }
 
@@ -89,7 +96,7 @@ struct AppleSpeechTranscriptionClient: Sendable {
     return try await analyze(
       audioURL: audioURL,
       transcriber: transcriber,
-      contextualPhrases: configuration.contextualPhrases
+      contextualPhrases: vocabulary
     )
   }
 
@@ -196,7 +203,8 @@ struct AppleSpeechTranscriptionClient: Sendable {
 
   private func transcribeWithLegacyRecognizer(
     audioURL: URL,
-    configuration: AppleSpeechConfiguration
+    configuration: AppleSpeechConfiguration,
+    vocabulary: [String]
   ) async throws -> String {
     let locale = Locale(identifier: configuration.normalizedLocaleIdentifier)
     guard let recognizer = SFSpeechRecognizer(locale: locale) else {
@@ -213,7 +221,7 @@ struct AppleSpeechTranscriptionClient: Sendable {
     let request = SFSpeechURLRecognitionRequest(url: audioURL)
     request.requiresOnDeviceRecognition = true
     request.shouldReportPartialResults = false
-    request.contextualStrings = configuration.contextualPhrases
+    request.contextualStrings = vocabulary
 
     return try await withCheckedThrowingContinuation { continuation in
       let state = LegacyRecognitionState(continuation: continuation)

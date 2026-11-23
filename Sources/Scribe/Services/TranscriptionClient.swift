@@ -4,7 +4,21 @@ struct TranscriptionRequest: Sendable {
   let provider: TranscriptionProvider
   let remoteConfiguration: ProviderConfiguration
   let appleConfiguration: AppleSpeechConfiguration
+  let localModel: LocalSpeechModel
+  let localModelLanguage: String?
+  let vocabulary: [String]
+  let audioProcessing: AudioProcessingOptions
+  let textCleanup: TextCleanupOptions
   let apiKey: String
+
+  var spokenLanguageCode: String? {
+    switch provider {
+    case .localModel: localModelLanguage
+    case .appleOnDevice:
+      Locale(identifier: appleConfiguration.normalizedLocaleIdentifier).language.languageCode?.identifier
+    case .openAICompatible: nil
+    }
+  }
 }
 
 protocol Transcribing: Sendable {
@@ -17,18 +31,58 @@ protocol Transcribing: Sendable {
 struct TranscriptionClient: Transcribing, Sendable {
   private let remote = OpenAITranscriptionClient()
   private let apple = AppleSpeechTranscriptionClient()
+  private let local = LocalModelTranscriptionClient()
 
   func transcribe(audioURL: URL, request: TranscriptionRequest) async throws -> String {
-    switch request.provider {
-    case .openAICompatible:
-      try await remote.transcribe(
-        audioURL: audioURL,
-        provider: request.remoteConfiguration,
-        apiKey: request.apiKey
+    let text = try await rawTranscript(audioURL: audioURL, request: request)
+    let cleaned = TextCleaner.cleaned(
+      text,
+      options: request.textCleanup,
+      languageCode: request.spokenLanguageCode
+    )
+    guard !cleaned.isEmpty else { throw DictationError.noSpeechDetected }
+    return cleaned
+  }
+
+  private func rawTranscript(audioURL: URL, request: TranscriptionRequest) async throws -> String {
+    if request.provider == .localModel {
+      let chunks = try await AudioPreprocessor.speechChunks(
+        from: audioURL,
+        options: request.audioProcessing
       )
-    case .appleOnDevice:
-      try await apple.transcribe(audioURL: audioURL, configuration: request.appleConfiguration)
+      guard !chunks.isEmpty else { throw DictationError.noSpeechDetected }
+      return try await local.transcribe(
+        chunks: chunks,
+        model: request.localModel,
+        language: request.localModelLanguage,
+        vocabulary: request.vocabulary
+      )
     }
+
+    let processedURL = try await AudioPreprocessor.processedFile(
+      from: audioURL,
+      options: request.audioProcessing
+    )
+    defer {
+      if processedURL != audioURL { try? FileManager.default.removeItem(at: processedURL) }
+    }
+
+    if request.provider == .appleOnDevice {
+      return try await apple.transcribe(
+        audioURL: processedURL,
+        configuration: request.appleConfiguration,
+        vocabulary: request.vocabulary
+      )
+    }
+
+    let mp3URL = try MP3Encoder.encode(processedURL)
+    defer { try? FileManager.default.removeItem(at: mp3URL) }
+    return try await remote.transcribe(
+      audioURL: mp3URL,
+      provider: request.remoteConfiguration,
+      apiKey: request.apiKey,
+      prompt: Vocabulary.prompt(request.vocabulary)
+    )
   }
 }
 
@@ -42,7 +96,8 @@ struct OpenAITranscriptionClient: @unchecked Sendable {
   func transcribe(
     audioURL: URL,
     provider: ProviderConfiguration,
-    apiKey: String
+    apiKey: String,
+    prompt: String? = nil
   ) async throws -> String {
     guard let baseURL = provider.normalizedBaseURL else {
       throw DictationError.invalidProviderURL
@@ -59,6 +114,7 @@ struct OpenAITranscriptionClient: @unchecked Sendable {
     request.httpBody = try Self.multipartBody(
       boundary: boundary,
       model: provider.model,
+      prompt: prompt,
       audioURL: audioURL
     )
 
@@ -84,11 +140,21 @@ struct OpenAITranscriptionClient: @unchecked Sendable {
     return payload.data.map(\.id).sorted()
   }
 
-  private static func multipartBody(boundary: String, model: String, audioURL: URL) throws -> Data {
+  private static func multipartBody(
+    boundary: String,
+    model: String,
+    prompt: String?,
+    audioURL: URL
+  ) throws -> Data {
     var body = Data()
     body.appendUTF8("--\(boundary)\r\n")
     body.appendUTF8("Content-Disposition: form-data; name=\"model\"\r\n\r\n")
     body.appendUTF8("\(model)\r\n")
+    if let prompt {
+      body.appendUTF8("--\(boundary)\r\n")
+      body.appendUTF8("Content-Disposition: form-data; name=\"prompt\"\r\n\r\n")
+      body.appendUTF8("\(prompt)\r\n")
+    }
     body.appendUTF8("--\(boundary)\r\n")
     body.appendUTF8(
       "Content-Disposition: form-data; name=\"file\"; filename=\"dictation.mp3\"\r\n"

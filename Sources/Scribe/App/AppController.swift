@@ -10,6 +10,7 @@ final class AppController: ObservableObject {
 
   let settings: AppSettings
   let history: HistoryStore
+  let localModels = LocalModelLibrary()
 
   private let keychain = KeychainStore()
   private let recorder = AudioRecorder()
@@ -27,7 +28,7 @@ final class AppController: ObservableObject {
     queue = TranscriptionQueue(
       client: client,
       completion: { [weak self] job, result in self?.complete(job: job, result: result) },
-      depthChanged: { [weak self] count in self?.queuedCount = count }
+      depthChanged: { [weak self] count in self?.queueDepthChanged(count) }
     )
     registerHotKey(self.settings.hotKey)
   }
@@ -56,11 +57,15 @@ final class AppController: ObservableObject {
         guard await PermissionManager.requestSpeechRecognition() else {
           throw DictationError.speechRecognitionDenied
         }
+      case .localModel:
+        guard localModels.isDownloaded(settings.localModel) else {
+          throw DictationError.localModelNotDownloaded(settings.localModel.displayName)
+        }
       }
       let startedAt = try await recorder.start()
       lastError = nil
       isRecording = true
-      pill.show(startedAt: startedAt, on: targetScreen)
+      pill.show(.recording(startedAt: startedAt), on: targetScreen)
       sounds.play(.started)
     } catch {
       report(error)
@@ -73,7 +78,7 @@ final class AppController: ObservableObject {
     do {
       recording = try recorder.stop()
       isRecording = false
-      pill.hide()
+      pill.show(.transcribing, on: nil)
     } catch {
       isRecording = false
       pill.hide()
@@ -81,31 +86,22 @@ final class AppController: ObservableObject {
       return
     }
 
-    do {
-      let audioURL: URL
-      if settings.transcriptionProvider == .openAICompatible {
-        audioURL = try await Task.detached(priority: .userInitiated) {
-          try MP3Encoder.encode(recording.url)
-        }.value
-        try? FileManager.default.removeItem(at: recording.url)
-      } else {
-        audioURL = recording.url
-      }
-      let job = TranscriptionQueue.Job(
-        audioURL: audioURL,
-        duration: recording.duration,
-        request: TranscriptionRequest(
-          provider: settings.transcriptionProvider,
-          remoteConfiguration: settings.provider,
-          appleConfiguration: settings.appleSpeech,
-          apiKey: settings.transcriptionProvider == .openAICompatible ? keychain.readAPIKey() : ""
-        )
+    let job = TranscriptionQueue.Job(
+      audioURL: recording.url,
+      duration: recording.duration,
+      request: TranscriptionRequest(
+        provider: settings.transcriptionProvider,
+        remoteConfiguration: settings.provider,
+        appleConfiguration: settings.appleSpeech,
+        localModel: settings.localModel,
+        localModelLanguage: settings.localModelLanguage,
+        vocabulary: settings.vocabulary,
+        audioProcessing: settings.audioProcessing,
+        textCleanup: settings.textCleanup,
+        apiKey: settings.transcriptionProvider == .openAICompatible ? keychain.readAPIKey() : ""
       )
-      Task { await queue.enqueue(job) }
-    } catch {
-      try? FileManager.default.removeItem(at: recording.url)
-      report(error)
-    }
+    )
+    Task { await queue.enqueue(job) }
   }
 
   func updateHotKey(_ configuration: HotKeyConfiguration) {
@@ -148,10 +144,9 @@ final class AppController: ObservableObject {
     }
   }
 
-  func copyLastTranscript() {
-    guard let text = history.lastTranscript?.text else { return }
-    NSPasteboard.general.clearContents()
-    NSPasteboard.general.setString(text, forType: .string)
+  private func queueDepthChanged(_ count: Int) {
+    queuedCount = count
+    if count == 0, !isRecording { pill.hide() }
   }
 
   private func registerHotKey(_ configuration: HotKeyConfiguration) {

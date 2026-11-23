@@ -21,6 +21,7 @@ final class TranscriptionClientTests: XCTestCase, @unchecked Sendable {
       let body = try XCTUnwrap(bodyData(from: request))
       let bodyText = String(decoding: body, as: UTF8.self)
       XCTAssertTrue(bodyText.contains("name=\"model\"\r\n\r\nspeech-model"))
+      XCTAssertTrue(bodyText.contains("name=\"prompt\"\r\n\r\nScribe, Zergo\r\n"))
       XCTAssertTrue(bodyText.contains("name=\"file\"; filename=\"dictation.mp3\""))
       XCTAssertTrue(bodyText.contains("Content-Type: audio/mpeg"))
       XCTAssertTrue(bodyText.contains("audio-data"))
@@ -34,7 +35,8 @@ final class TranscriptionClientTests: XCTestCase, @unchecked Sendable {
     let result = try await client.transcribe(
       audioURL: audio,
       provider: .init(baseURL: "https://provider.test/v1/", model: "speech-model"),
-      apiKey: "secret"
+      apiKey: "secret",
+      prompt: "Scribe, Zergo"
     )
     XCTAssertEqual(result, "Hello world")
   }
@@ -60,6 +62,8 @@ final class TranscriptionClientTests: XCTestCase, @unchecked Sendable {
     try Data().write(to: audio)
     defer { try? FileManager.default.removeItem(at: audio) }
     MockURLProtocol.handler = { request in
+      let body = try XCTUnwrap(bodyData(from: request))
+      XCTAssertFalse(String(decoding: body, as: UTF8.self).contains("name=\"prompt\""))
       let data = Data(#"{"error":{"message":"model unavailable"}}"#.utf8)
       return (
         HTTPURLResponse(url: request.url!, statusCode: 422, httpVersion: nil, headerFields: nil)!,

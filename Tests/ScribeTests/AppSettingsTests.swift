@@ -14,8 +14,15 @@ final class AppSettingsTests: XCTestCase {
     first.provider = ProviderConfiguration(baseURL: "https://provider.test/v1", model: "speech-1")
     first.appleSpeech = AppleSpeechConfiguration(
       localeIdentifier: "en-GB",
-      mode: .generalPurpose,
-      contextualPhrases: ["Scribe", "Zergo"]
+      mode: .generalPurpose
+    )
+    first.vocabulary = ["Scribe", "Zergo"]
+    first.localModel = .qwen3ASR
+    first.localModelLanguage = "de"
+    first.audioProcessing = AudioProcessingOptions(
+      removeLowHum: false,
+      normalizeLevel: true,
+      trimSilence: false
     )
     first.hotKey = HotKeyConfiguration(keyCode: 12, carbonModifiers: 256)
     first.launchAtLogin = true
@@ -24,6 +31,10 @@ final class AppSettingsTests: XCTestCase {
     XCTAssertEqual(second.transcriptionProvider, .appleOnDevice)
     XCTAssertEqual(second.provider, first.provider)
     XCTAssertEqual(second.appleSpeech, first.appleSpeech)
+    XCTAssertEqual(second.vocabulary, ["Scribe", "Zergo"])
+    XCTAssertEqual(second.localModel, .qwen3ASR)
+    XCTAssertEqual(second.localModelLanguage, "de")
+    XCTAssertEqual(second.audioProcessing, first.audioProcessing)
     XCTAssertEqual(second.hotKey, first.hotKey)
     XCTAssertTrue(second.launchAtLogin)
   }
@@ -43,5 +54,45 @@ final class AppSettingsTests: XCTestCase {
     XCTAssertEqual(settings.transcriptionProvider, .openAICompatible)
     XCTAssertEqual(settings.provider, existingProvider)
     XCTAssertEqual(settings.appleSpeech, .default)
+    XCTAssertEqual(settings.localModel, .default)
+    XCTAssertEqual(settings.audioProcessing, .default)
+    XCTAssertEqual(settings.vocabulary, [])
+    XCTAssertNil(settings.localModelLanguage)
+  }
+
+  func testAppleVocabularyMigratesToSharedVocabulary() throws {
+    let suite = "ScribeTests-\(UUID().uuidString)"
+    let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+
+    let legacy = #"{"localeIdentifier":"en-GB","mode":"dictation","contextualPhrases":["Scribe"]}"#
+    defaults.set(Data(legacy.utf8), forKey: "appleSpeech")
+
+    let settings = AppSettings(defaults: defaults)
+    XCTAssertEqual(settings.vocabulary, ["Scribe"])
+    XCTAssertEqual(settings.appleSpeech.localeIdentifier, "en-GB")
+    XCTAssertEqual(settings.appleSpeech.mode, .dictation)
+  }
+
+  func testAutomaticLocalModelLanguageClearsStoredValue() throws {
+    let suite = "ScribeTests-\(UUID().uuidString)"
+    let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+
+    let settings = AppSettings(defaults: defaults)
+    settings.localModelLanguage = "fr"
+    settings.localModelLanguage = nil
+
+    XCTAssertNil(AppSettings(defaults: defaults).localModelLanguage)
+  }
+
+  func testUnknownLocalModelFallsBackToDefault() throws {
+    let suite = "ScribeTests-\(UUID().uuidString)"
+    let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+
+    defaults.set("removedModel", forKey: "localModel")
+
+    XCTAssertEqual(AppSettings(defaults: defaults).localModel, .default)
   }
 }

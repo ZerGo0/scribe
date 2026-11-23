@@ -26,6 +26,11 @@ final class TranscriptionQueueTests: XCTestCase {
       provider: .openAICompatible,
       remoteConfiguration: provider,
       appleConfiguration: .default,
+      localModel: .default,
+      localModelLanguage: nil,
+      vocabulary: [],
+      audioProcessing: .default,
+      textCleanup: .default,
       apiKey: "k"
     )
 

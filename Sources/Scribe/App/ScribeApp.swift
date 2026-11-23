@@ -19,7 +19,7 @@ struct ScribeApp: App {
       SettingsView(controller: controller)
     }
 
-    Window("Dictation History", id: "history") {
+    Window("History", id: "history") {
       HistoryView(history: controller.history)
     }
     .defaultSize(width: 620, height: 460)

@@ -4,11 +4,21 @@ import Foundation
 enum TranscriptionProvider: String, Codable, CaseIterable, Equatable, Sendable {
   case openAICompatible
   case appleOnDevice
+  case localModel
 
   var displayName: String {
     switch self {
     case .openAICompatible: "OpenAI-compatible"
     case .appleOnDevice: "Apple On-Device"
+    case .localModel: "Local Model"
+    }
+  }
+
+  var detail: String {
+    switch self {
+    case .openAICompatible: "Uploads each recording to a service that offers the OpenAI transcription API."
+    case .appleOnDevice: "Uses Apple's speech recognition. Audio stays on this Mac."
+    case .localModel: "Uses a model that you download. Audio stays on this Mac."
     }
   }
 }
@@ -45,12 +55,10 @@ enum AppleSpeechMode: String, Codable, CaseIterable, Equatable, Sendable {
 struct AppleSpeechConfiguration: Codable, Equatable, Sendable {
   var localeIdentifier: String
   var mode: AppleSpeechMode
-  var contextualPhrases: [String]
 
   static let `default` = AppleSpeechConfiguration(
     localeIdentifier: "en-US",
-    mode: .accentOptimized,
-    contextualPhrases: []
+    mode: .accentOptimized
   )
 
   var normalizedLocaleIdentifier: String {
@@ -117,6 +125,8 @@ enum DictationError: LocalizedError, Equatable {
   case recordingFailed(String)
   case requestFailed(String)
   case appleSpeechUnavailable(String)
+  case localModelNotDownloaded(String)
+  case noSpeechDetected
 
   var errorDescription: String? {
     switch self {
@@ -129,6 +139,8 @@ enum DictationError: LocalizedError, Equatable {
     case .recordingFailed(let message): "Recording failed: \(message)"
     case .requestFailed(let message): "Transcription failed: \(message)"
     case .appleSpeechUnavailable(let message): "Apple transcription is unavailable: \(message)"
+    case .localModelNotDownloaded(let name): "Download the \(name) model in Settings."
+    case .noSpeechDetected: "No speech was detected in the recording."
     }
   }
 }

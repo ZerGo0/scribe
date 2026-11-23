@@ -33,16 +33,40 @@ cp -R "$LAME_FRAMEWORK" "$APP/Contents/Frameworks/LAME.framework"
 install_name_tool \
   -add_rpath '@executable_path/../Frameworks' \
   "$APP/Contents/MacOS/Scribe"
-LAME_LICENSE_ROOT="$ROOT/.build/checkouts/LAME-xcframework"
-mkdir -p "$APP/Contents/Resources/ThirdPartyLicenses/LAME"
-cp "$LAME_LICENSE_ROOT/LICENSE" "$APP/Contents/Resources/ThirdPartyLicenses/LAME/"
-cp "$LAME_LICENSE_ROOT/LICENSE-LAME" "$APP/Contents/Resources/ThirdPartyLicenses/LAME/"
-cp "$LAME_LICENSE_ROOT/COPYING" "$APP/Contents/Resources/ThirdPartyLicenses/LAME/"
+if otool -L "$APP/Contents/MacOS/Scribe" | grep -q libswiftCompatibilitySpan; then
+  SPAN_LIBRARY=$(find "$(dirname "$(xcrun --find swift)")/../lib" \
+    -path '*/macosx/libswiftCompatibilitySpan.dylib' \
+    | head -n 1)
+  if [ -z "$SPAN_LIBRARY" ]; then
+    echo "Could not find libswiftCompatibilitySpan.dylib."
+    exit 1
+  fi
+  cp "$SPAN_LIBRARY" "$APP/Contents/Frameworks/"
+fi
+for RESOURCE_BUNDLE in "$BIN_DIR"/*.bundle; do
+  [ -d "$RESOURCE_BUNDLE" ] || continue
+  cp -R "$RESOURCE_BUNDLE" "$APP/Contents/Resources/"
+done
+if [ ! -f "$APP/Contents/Resources/mlx-swift_Cmlx.bundle/Contents/Resources/default.metallib" ]; then
+  echo "Could not find the compiled MLX Metal library."
+  echo "Install the Metal Toolchain: xcodebuild -downloadComponent MetalToolchain"
+  exit 1
+fi
+LICENSES="$APP/Contents/Resources/ThirdPartyLicenses"
+for CHECKOUT in "$ROOT"/.build/checkouts/*; do
+  NAME=$(basename "$CHECKOUT")
+  for LICENSE_FILE in "$CHECKOUT"/LICENSE* "$CHECKOUT"/COPYING* "$CHECKOUT"/NOTICE*; do
+    [ -f "$LICENSE_FILE" ] || continue
+    mkdir -p "$LICENSES/$NAME"
+    cp "$LICENSE_FILE" "$LICENSES/$NAME/"
+  done
+done
+cp "$ROOT/.build/checkouts/FluidAudio/ThirdPartyLicenses/fastcluster-LICENSE.md" "$LICENSES/FluidAudio/"
 cp "$ROOT/Resources/Info.plist" "$APP/Contents/Info.plist"
 if ! xcrun actool \
   --compile "$APP/Contents/Resources" \
   --platform macosx \
-  --minimum-deployment-target 14.0 \
+  --minimum-deployment-target 15.0 \
   --app-icon AppIcon \
   --standalone-icon-behavior all \
   --output-partial-info-plist "$ROOT/.build/AppIcon-Info.plist" \

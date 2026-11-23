@@ -21,8 +21,6 @@ final class HistoryStore: ObservableObject {
     pruneExpired()
   }
 
-  var lastTranscript: Transcript? { transcripts.first }
-
   func add(_ transcript: Transcript) {
     transcripts.insert(transcript, at: 0)
     pruneExpired()

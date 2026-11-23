@@ -16,6 +16,26 @@ final class AppSettings: ObservableObject {
     didSet { persist() }
   }
 
+  @Published var vocabulary: [String] {
+    didSet { persist() }
+  }
+
+  @Published var localModel: LocalSpeechModel {
+    didSet { persist() }
+  }
+
+  @Published var localModelLanguage: String? {
+    didSet { persist() }
+  }
+
+  @Published var audioProcessing: AudioProcessingOptions {
+    didSet { persist() }
+  }
+
+  @Published var textCleanup: TextCleanupOptions {
+    didSet { persist() }
+  }
+
   @Published var hotKey: HotKeyConfiguration {
     didSet { persist() }
   }
@@ -37,6 +57,20 @@ final class AppSettings: ObservableObject {
       Self.decode(ProviderConfiguration.self, key: "provider", defaults: defaults) ?? .default
     appleSpeech =
       Self.decode(AppleSpeechConfiguration.self, key: "appleSpeech", defaults: defaults) ?? .default
+    vocabulary =
+      defaults.stringArray(forKey: "vocabulary")
+      ?? Self.decode(LegacyAppleSpeechVocabulary.self, key: "appleSpeech", defaults: defaults)?
+      .contextualPhrases
+      ?? []
+    localModel =
+      defaults.string(forKey: "localModel")
+      .flatMap(LocalSpeechModel.init(rawValue:)) ?? .default
+    localModelLanguage = defaults.string(forKey: "localModelLanguage")
+    audioProcessing =
+      Self.decode(AudioProcessingOptions.self, key: "audioProcessing", defaults: defaults)
+      ?? .default
+    textCleanup =
+      Self.decode(TextCleanupOptions.self, key: "textCleanup", defaults: defaults) ?? .default
     hotKey = Self.decode(HotKeyConfiguration.self, key: "hotKey", defaults: defaults) ?? .default
     launchAtLogin = defaults.bool(forKey: "launchAtLogin")
   }
@@ -48,6 +82,19 @@ final class AppSettings: ObservableObject {
     }
     if let data = try? encoder.encode(appleSpeech) {
       defaults.set(data, forKey: "appleSpeech")
+    }
+    defaults.set(vocabulary, forKey: "vocabulary")
+    defaults.set(localModel.rawValue, forKey: "localModel")
+    if let localModelLanguage {
+      defaults.set(localModelLanguage, forKey: "localModelLanguage")
+    } else {
+      defaults.removeObject(forKey: "localModelLanguage")
+    }
+    if let data = try? encoder.encode(audioProcessing) {
+      defaults.set(data, forKey: "audioProcessing")
+    }
+    if let data = try? encoder.encode(textCleanup) {
+      defaults.set(data, forKey: "textCleanup")
     }
     if let data = try? encoder.encode(hotKey) {
       defaults.set(data, forKey: "hotKey")
@@ -63,6 +110,10 @@ final class AppSettings: ObservableObject {
     guard let data = defaults.data(forKey: key) else { return nil }
     return try? JSONDecoder().decode(type, from: data)
   }
+}
+
+private struct LegacyAppleSpeechVocabulary: Decodable {
+  let contextualPhrases: [String]
 }
 
 struct KeychainStore: Sendable {

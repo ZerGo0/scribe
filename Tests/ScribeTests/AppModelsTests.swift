@@ -23,10 +23,37 @@ final class AppModelsTests: XCTestCase {
   func testAppleSpeechFallsBackToDefaultLocaleForWhitespace() {
     let configuration = AppleSpeechConfiguration(
       localeIdentifier: "   ",
-      mode: .dictation,
-      contextualPhrases: []
+      mode: .dictation
     )
     XCTAssertEqual(configuration.normalizedLocaleIdentifier, "en-US")
+  }
+
+  func testVocabularyTrimsEntriesAndDropsEmptyAndDuplicateTerms() {
+    XCTAssertEqual(
+      Vocabulary.terms(from: " Scribe, ,Zergo,scribe , Hugging Face,"),
+      ["Scribe", "Zergo", "Hugging Face"]
+    )
+  }
+
+  func testVocabularyPromptIsNilWithoutTerms() {
+    XCTAssertNil(Vocabulary.prompt([]))
+    XCTAssertEqual(Vocabulary.prompt(["Scribe", "Zergo"]), "Scribe, Zergo")
+  }
+
+  func testLocalModelNotDownloadedErrorNamesTheModel() {
+    XCTAssertEqual(
+      DictationError.localModelNotDownloaded(LocalSpeechModel.parakeetV3.displayName)
+        .errorDescription,
+      "Download the Parakeet TDT v3 model in Settings."
+    )
+  }
+
+  func testAudioProcessingIsEnabledWhenAnyStepIsOn() {
+    XCTAssertTrue(AudioProcessingOptions.default.isEnabled)
+    XCTAssertFalse(
+      AudioProcessingOptions(removeLowHum: false, normalizeLevel: false, trimSilence: false)
+        .isEnabled
+    )
   }
 
   @MainActor
